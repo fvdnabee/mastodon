@@ -161,3 +161,6 @@ gem 'connection_pool', require: false
 
 gem 'xorcist', '~> 1.1'
 gem 'pluck_each', '~> 0.1.3'
+
+gem 'irb'
+gem 'debug_inspector', git: 'https://github.com/BetterErrors/debug_inspector', branch: 'fix/load-extension-from-ext-dir'
