@@ -15,6 +15,7 @@ require_relative 'mastodon/upgrade_cli'
 require_relative 'mastodon/email_domain_blocks_cli'
 require_relative 'mastodon/ip_blocks_cli'
 require_relative 'mastodon/maintenance_cli'
+require_relative 'mastodon/ig_import_cli'
 require_relative 'mastodon/version'
 
 module Mastodon
@@ -64,6 +65,9 @@ module Mastodon
 
     desc 'maintenance SUBCOMMAND ...ARGS', 'Various maintenance utilities'
     subcommand 'maintenance', Mastodon::MaintenanceCLI
+
+    desc 'igimport SUBCOMMAND ...ARGS', 'Import instagram posts as mastodon statusses'
+    subcommand 'ig_import', Mastodon::IGImportCLI
 
     option :dry_run, type: :boolean
     desc 'self-destruct', 'Erase the server from the federation'
