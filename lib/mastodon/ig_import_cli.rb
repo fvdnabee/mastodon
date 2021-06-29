@@ -3,6 +3,9 @@
 require_relative '../../config/boot'
 require_relative '../../config/environment'
 require_relative 'cli_helper'
+require_relative '../../app/validators/status_length_validator'
+
+MAX_CHARS = StatusLengthValidator::MAX_CHARS
 
 require 'date'
 require 'json'
@@ -54,9 +57,9 @@ module Mastodon
           end
         end
 
-        if text.size > 500
+        if text.size > MAX_CHARS
           # due the pagination for a max number of blocks equal to 99, chunks should never be longer than 500 chars for chunk_size = 491
-          chunk_size = 491
+          chunk_size = MAX_CHARS - 9
           text_chunks = text.scan(/.{0,#{chunk_size}}[a-z.!?,;](?:\b|$)/mi)
           n_chunks = text_chunks.size
           raise "Text too long: #{text.size} chars would become #{n_chunks} chunks" unless n_chunks < 100
