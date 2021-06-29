@@ -31,7 +31,11 @@ module Mastodon
 
       posts = JSON.parse(file)
       posts = posts.sort_by { |item| item['media'][0]['creation_timestamp'] }
-      posts.each { |post| handle_post(post, options[:locations]) }
+      n_statuses = 0
+      posts.each do |post|
+        n_statuses += handle_post(post, options[:locations])
+      end
+      @@logger.info "Imported #{n_statuses} toots"
     end
 
     no_commands do
@@ -71,7 +75,7 @@ module Mastodon
 
         # Has a status with text already been created ? (false negative if the user
         # actually has two posts with the exact same title)
-        return if post_exists?(text_chunks[0])
+        return 0 if post_exists?(text_chunks[0])
 
         ApplicationRecord.transaction do
           # Post first chunk:
@@ -103,6 +107,8 @@ module Mastodon
             @@logger.info "Created status with ID #{status.id} (reply) "
           end
         end
+
+        return text_chunks.size
       end
 
       def post_exists?(post_text)
