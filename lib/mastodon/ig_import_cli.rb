@@ -13,7 +13,14 @@ module Mastodon
 
     @@logger = Logger.new($stdout)
 
+    option :locations, type: :boolean
     desc 'import posts_1.json account_name', 'Import posts from IG json into account_name.'
+    long_desc <<-LONG_DESC
+      Import posts from IG json into account_name.
+
+      With the --locations option, geo locations from posts_1.json will be
+      added to toot texts as links to http://osm.org.
+    LONG_DESC
     def import(json_fp, account_name)
       @root_path = File.join(File.dirname(json_fp), '..')
       @account = Account.find_local(account_name)
@@ -21,11 +28,11 @@ module Mastodon
 
       posts = JSON.parse(file)
       posts = posts.sort_by { |item| item['media'][0]['creation_timestamp'] }
-      posts.each { |post| handle_post(post) }
+      posts.each { |post| handle_post(post, options[:locations]) }
     end
 
     no_commands do
-      def handle_post(post)
+      def handle_post(post, locations)
         ts = post['media'][0]['creation_timestamp']
         text = if post.key?('title') && !post['title'].empty?
                  post['title']
@@ -33,6 +40,19 @@ module Mastodon
                  post['media'][0]['title']
                end
         text = text.encode('ISO-8859-1').force_encoding('utf-8')
+
+        if locations && post['media'][0].key?('media_metadata') # add OSM link with marker to text
+          media_metadata = post['media'][0]['media_metadata']
+          post_metadata = if media_metadata.key?('photo_metadata')
+                            media_metadata['photo_metadata']
+                          elsif media_metadata.key?('video_metadata')
+                            media_metadata['video_metadata']
+                          end
+
+          unless post_metadata.nil?
+            text = "#{text} #{osm_url(post_metadata['latitude'], post_metadata['longitude'])}"
+          end
+        end
 
         if text.size > 500
           # due the pagination for a max number of blocks equal to 99, chunks should never be longer than 500 chars for chunk_size = 491
@@ -96,6 +116,11 @@ module Mastodon
         }
 
         @account.media_attachments.create!(media_attachment_params)
+      end
+
+      def osm_url(lat, long)
+        # Link to openstreetmap.org with a marker shown at lat, long coords
+        "https://osm.org/?mlat=#{lat}&mlon=#{long}"
       end
     end
   end
