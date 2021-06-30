@@ -38,6 +38,36 @@ module Mastodon
       @@logger.info "Imported #{n_statuses} toots"
     end
 
+    option :dryrun, type: :boolean
+    desc 'delete_statuses account_name date', 'Delete all statuses of account_name before date, also deletes media attachments.'
+    long_desc <<-LONG_DESC
+      Delete all statuses of account_name before date, also deletes media attachments.
+
+      With the --dryrun option, records are not actually deleted.
+    LONG_DESC
+    def delete_statuses(account_name, date)
+      @account = Account.find_local(account_name)
+
+      n_media_attachments = n_statuses = 0
+      MediaAttachment.order(:created_at).includes(:status).where('media_attachments.account_id = ?', @account.id).where('statuses.created_at <= ?', date).references(:status).in_batches do |media_attachments|
+        media_attachments.each_slice(50) do |slice|
+          @@logger.info "Deleting media attachments #{slice.map(&:id)}"
+          MediaAttachment.where(id: slice.map(&:id)).destroy_all unless options[:dryrun]
+          n_media_attachments += slice.size unless options[:dryrun]
+        end
+      end
+
+      @account.statuses.reorder(:created_at).where('created_at <= ?', date).in_batches do |statuses|
+        statuses.each_slice(50) do |slice|
+          @@logger.info "Deleting statuses #{slice.map(&:id)}"
+          Status.where(id: slice.map(&:id)).destroy_all unless options[:dryrun]
+          n_statuses += slice.size unless options[:dryrun]
+        end
+      end
+
+      @@logger.info "Deleted #{n_statuses} statuses and #{n_media_attachments} attachments of #{account_name}"
+    end
+
     no_commands do
       def handle_post(post, locations)
         ts = post['media'][0]['creation_timestamp']
