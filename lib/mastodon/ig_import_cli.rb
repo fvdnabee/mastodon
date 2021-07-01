@@ -81,7 +81,11 @@ module Mastodon
         if locations && post['media'][0].key?('media_metadata') # add OSM link with marker to text
           media_metadata = post['media'][0]['media_metadata']
           post_metadata = if media_metadata.key?('photo_metadata')
-                            media_metadata['photo_metadata']
+                            if media_metadata['photo_metadata'].key?('latitude')
+                              media_metadata['photo_metadata']
+                            elsif media_metadata['photo_metadata'].key?('exif_data')
+                              media_metadata['photo_metadata']['exif_data'][0]
+                            end
                           elsif media_metadata.key?('video_metadata')
                             media_metadata['video_metadata']
                           end
